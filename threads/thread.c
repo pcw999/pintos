@@ -262,21 +262,25 @@ void thread_sleep(int64_t wake_up)
 int64_t thread_awake(int64_t ticks)
 {
 	int64_t min = INT64_MAX;
-	for (struct list_elem *e = list_begin(&sleep_list); e != list_end(&sleep_list); e = list_next(e))
+	struct list_elem *e = list_begin(&sleep_list);
+	while (e != list_end(&sleep_list))
 	{
 		struct thread *t = list_entry(e, struct thread, elem);
 		if (t->wake_up <= ticks)
 		{
+			e = list_remove(e);
 			thread_unblock(t);
 		}
 		else
 		{
-			if (min <= t->wake_up)
+			if (t->wake_up <= min)
 			{
 				min = t->wake_up;
 			}
+			e = list_next(e);
 		}
 	}
+
 	return min;
 }
 

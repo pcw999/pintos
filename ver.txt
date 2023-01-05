@@ -1,2 +1,6 @@
 ver 1
--sleep, awake 구현했지만 list_next 부분에서 오류남
+-sleep, awake 구현했지만 list_next 부분에서 오류남 (is_interior)
+
+ver 2
+-alarm clock 구현완료 thread_awake 부분에서 list_remove보다 thread_block을 먼저해서 오류발생했었음
+

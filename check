@@ -160,6 +160,7 @@ echo "make clean: DO or NOT"
 echo "    y(yes) : make clean"
 echo "    ANY KEY : no"
 read CLN
+
 if [ "${CLN,,}" == "y" -o "${CLN,,}" == "yes" ]
 then
     echo "clean previous build"
@@ -175,6 +176,7 @@ echo "    2: USER PROGRAMS"
 echo "    3: VIRTUAL MEMORY"
 echo "    4: FILE SYSTEM"
 read PRJN                                           # get project number
+
 if [ $PRJN -lt 1 -o $PRJN -gt 4 ]                   # check input error
 then
     echo "ERROR: wrong project number!"
