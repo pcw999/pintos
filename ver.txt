@@ -4,3 +4,6 @@ ver 1
 ver 2
 -alarm clock 구현완료 thread_awake 부분에서 list_remove보다 thread_block을 먼저해서 오류발생했었음
 
+ver 3
+-기초적인 priority 구현
+
