@@ -9,3 +9,9 @@ ver 3
 
 ver 4
 -헤더에 맞게 순서조정, 필요시 thread_yield 하는 부분 함수로 구현(기존엔 x)
+
+ver 5
+-donate를 위한 기본 함수와 thread 내부에 멤버 추가, 초기화
+
+ver 6
+-세마포어 우선순위 순으로 대기, condv도 우선순위 대기

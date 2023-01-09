@@ -387,6 +387,20 @@ bool cmp_priority_donation(struct list_elem *a, struct list_elem *b, void *aux U
 	return thread_a->priority > thread_b->priority;
 }
 
+bool cmp_priority_sema(struct list_elem *a, struct list_elem *b, void *aux UNUSED)
+{
+	struct semaphore_elem *sa = list_entry(a, struct semaphore_elem, elem);
+	struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);
+
+	struct list_elem *sa_e = list_begin(&(sa->semaphore.waiters));
+	struct list_elem *sb_e = list_begin(&(sb->semaphore.waiters));
+
+	struct thread *sa_t = list_entry(sa_e, struct thread, elem);
+	struct thread *sb_t = list_entry(sb_e, struct thread, elem);
+
+	return (sa_t->priority) > (sb_t->priority);
+}
+
 /* Sets the current thread's nice value to NICE. */
 void thread_set_nice(int nice UNUSED)
 {
