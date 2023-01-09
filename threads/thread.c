@@ -380,6 +380,13 @@ bool cmp_priority(struct list_elem *a, struct list_elem *b, void *aux UNUSED)
 	return thread_a->priority > thread_b->priority;
 }
 
+bool cmp_priority_donation(struct list_elem *a, struct list_elem *b, void *aux UNUSED)
+{
+	struct thread *thread_a = list_entry(a, struct thread, donation_elem);
+	struct thread *thread_b = list_entry(b, struct thread, donation_elem);
+	return thread_a->priority > thread_b->priority;
+}
+
 /* Sets the current thread's nice value to NICE. */
 void thread_set_nice(int nice UNUSED)
 {
@@ -474,6 +481,9 @@ init_thread(struct thread *t, const char *name, int priority)
 	strlcpy(t->name, name, sizeof t->name);
 	t->tf.rsp = (uint64_t)t + PGSIZE - sizeof(void *);
 	t->priority = priority;
+	t->origin_priority = priority;
+	t->wait_lock = NULL;
+	list_init(&t->donation);
 	t->magic = THREAD_MAGIC;
 }
 
