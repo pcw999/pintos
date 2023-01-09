@@ -351,15 +351,26 @@ void thread_yield(void)
 	intr_set_level(old_level);
 }
 
+void thread_yield_test(void)
+{
+	struct list_elem *e = list_begin(&ready_list);
+	if (list_entry(e, struct thread, elem)->priority > thread_current()->priority)
+	{
+		thread_yield();
+	}
+}
+
+/* Returns the current thread's priority. */
+int thread_get_priority(void)
+{
+	return thread_current()->priority;
+}
+
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority)
 {
 	thread_current()->priority = new_priority;
-	struct list_elem *e = list_begin(&ready_list);
-	if (list_entry(e, struct thread, elem)->priority > new_priority)
-	{
-		thread_yield();
-	}
+	thread_yield_test();
 }
 
 bool cmp_priority(struct list_elem *a, struct list_elem *b, void *aux UNUSED)
@@ -367,12 +378,6 @@ bool cmp_priority(struct list_elem *a, struct list_elem *b, void *aux UNUSED)
 	struct thread *thread_a = list_entry(a, struct thread, elem);
 	struct thread *thread_b = list_entry(b, struct thread, elem);
 	return thread_a->priority > thread_b->priority;
-}
-
-/* Returns the current thread's priority. */
-int thread_get_priority(void)
-{
-	return thread_current()->priority;
 }
 
 /* Sets the current thread's nice value to NICE. */

@@ -7,3 +7,5 @@ ver 2
 ver 3
 -기초적인 priority 구현
 
+ver 4
+-헤더에 맞게 순서조정, 필요시 thread_yield 하는 부분 함수로 구현(기존엔 x)
