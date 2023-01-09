@@ -145,9 +145,13 @@ void thread_yield_test(void);
 
 int thread_get_priority(void);
 void thread_set_priority(int);
+void thread_donate(void);
 bool cmp_priority(struct list_elem *a, struct list_elem *b, void *aux UNUSED);
 bool cmp_priority_donation(struct list_elem *a, struct list_elem *b, void *aux UNUSED);
 bool cmp_priority_sema(struct list_elem *a, struct list_elem *b, void *aux UNUSED);
+
+void remove_donation(struct lock *lock);
+void refresh_priority(void);
 
 int thread_get_nice(void);
 void thread_set_nice(int);
