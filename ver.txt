@@ -22,3 +22,6 @@ ver 7
 ver 8
 -mlfqs 부정소수점 연산을 위한 매크로 추가, 기능구현을 위한 함수 선언, mlfqs가 true인 경우, 
 priority 기반 스케줄링이 작동하지 않도록 조건문 추가
+
+ver 9
+-mlfqs 1차 완

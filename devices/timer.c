@@ -138,6 +138,19 @@ timer_interrupt(struct intr_frame *args UNUSED)
 {
 	ticks++;
 	thread_tick();
+	if (thread_mlfqs)
+	{
+		mlfqs_increase_recent_cpu();
+		if (ticks % 4 == 0)
+		{
+			mlfqs_refresh_priority();
+		}
+		if (ticks % TIMER_FREQ == 0)
+		{
+			mlfqs_refresh_recent_cpu();
+			mlfqs_get_load_avg();
+		}
+	}
 	if (next_awake <= ticks)
 	{
 		next_awake = thread_awake(ticks);

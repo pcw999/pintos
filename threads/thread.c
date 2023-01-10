@@ -28,6 +28,7 @@
    that are ready to run but not actually running. */
 static struct list ready_list;
 static struct list sleep_list;
+static struct list all_list;
 
 /* Idle thread. */
 static struct thread *idle_thread;
@@ -107,6 +108,7 @@ void thread_init(void)
 
 	/* Init the globla thread context */
 	lock_init(&tid_lock);
+	list_init(&all_list);
 	list_init(&ready_list);
 	list_init(&sleep_list);
 	list_init(&destruction_req);
@@ -207,6 +209,7 @@ tid_t thread_create(const char *name, int priority,
 	t->tf.eflags = FLAG_IF;
 
 	/* Add to run queue. */
+	list_push_back(&all_list, &t->elem);
 	thread_unblock(t);
 	thread_yield_test();
 
@@ -478,6 +481,15 @@ void thread_set_nice(int nice)
 	thread_yield_test();
 }
 
+/* Returns 100 times the current thread's recent_cpu value. */
+int thread_get_recent_cpu(void)
+{
+	/* TODO: Your implementation goes here */
+	struct thread *cur = thread_current();
+	int recent_cpu = fp_to_int_round((mult_mixed(cur->recent_cpu, 100)));
+	return recent_cpu;
+}
+
 /* Returns 100 times the system load average. */
 int thread_get_load_avg(void)
 {
@@ -486,13 +498,66 @@ int thread_get_load_avg(void)
 	return load_avg;
 }
 
-/* Returns 100 times the current thread's recent_cpu value. */
-int thread_get_recent_cpu(void)
+void mlfqs_get_priority(struct thread *t)
 {
-	/* TODO: Your implementation goes here */
+	if (t == idle_thread)
+	{
+		return;
+	}
+	t->priority = add_mixed(mult_mixed(t->recent_cpu, -4), PRI_MAX - (t->nice * 2));
+}
+
+void mlfqs_get_recent_cpu(struct thread *t)
+{
+	if (t == idle_thread)
+	{
+		return;
+	}
+	t->recent_cpu = add_mixed(mult_fp(div_mixed(mult_mixed(load_avg, 2), add_mixed(div_mixed(load_avg, 2), 1)), t->recent_cpu), t->nice);
+}
+
+void mlfqs_get_load_avg(void)
+{
+	int ready_threads;
+	if (thread_current() == idle_thread)
+	{
+		ready_threads = list_size(&ready_list);
+	}
+	else
+	{
+		ready_threads = list_size(&ready_list) + 1; /* 1 is running thread count */
+	}
+	load_avg = add_fp(mult_fp(div_fp(int_to_fp(59), int_to_fp(60)), load_avg), mult_mixed(div_fp(int_to_fp(1), int_to_fp(60)), ready_threads));
+}
+
+void mlfqs_increase_recent_cpu(void)
+{
 	struct thread *cur = thread_current();
-	int recent_cpu = fp_to_int_round((mult_mixed(cur->recent_cpu, 100)));
-	return recent_cpu;
+	if (cur == idle_thread)
+	{
+		return;
+	}
+	cur->recent_cpu = add_mixed(cur->recent_cpu, 1);
+}
+
+void mlfqs_refresh_priority(void)
+{
+	struct list_elem *e;
+	for (e = list_begin(&all_list); e != list_end(&all_list); e = list_next(e))
+	{
+		struct thread *t = list_entry(e, struct thread, elem);
+		mlfqs_get_priority(t);
+	}
+}
+
+void mlfqs_refresh_recent_cpu(void)
+{
+	struct list_elem *e;
+	for (e = list_begin(&all_list); e != list_end(&all_list); e = list_next(e))
+	{
+		struct thread *t = list_entry(e, struct thread, elem);
+		mlfqs_get_recent_cpu(t);
+	}
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -729,13 +794,14 @@ schedule(void)
 		/* If the thread we switched from is dying, destroy its struct
 		   thread. This must happen late so that thread_exit() doesn't
 		   pull out the rug under itself.
-		   We just queuing the page free reqeust here because the page is
+		   We just queuing the page free request here because the page is
 		   currently used bye the stack.
 		   The real destruction logic will be called at the beginning of the
 		   schedule(). */
 		if (curr && curr->status == THREAD_DYING && curr != initial_thread)
 		{
 			ASSERT(curr != next);
+			list_remove(&curr->elem);
 			list_push_back(&destruction_req, &curr->elem);
 		}
 
