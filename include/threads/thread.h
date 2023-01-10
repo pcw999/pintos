@@ -28,6 +28,27 @@ typedef int tid_t;
 #define PRI_DEFAULT 31 /* Default priority. */
 #define PRI_MAX 63	   /* Highest priority. */
 
+/* Thread mlfqs */
+#define NICE_DEFAULT 0
+#define RECENT_CPU_DEFAULT 0
+#define LOAD_AVG_DEFAULT 0
+
+/* operate mlfqs */
+#define F (1 << 14)
+#define INT_MAX ((1 << 31) - 1)
+#define INT_MIN (-(1 << 31))
+#define int_to_fp(n) ((n) * (F))
+#define fp_to_int(x) ((x) / (F))
+#define fp_to_int_round(x) (((x) >= (0)) ? (((x) + (F) / (2)) / (F)) : (((x) - (F) / (2)) / (F)))
+#define add_fp(x, y) ((x) + (y))
+#define sub_fp(x, y) ((x) - (y))
+#define add_mixed(x, n) ((x) + (n) * (F))
+#define sub_mixed(x, n) ((x) - (n) * (F))
+#define mult_fp(x, y) (((int64_t)x) * (y) / (F))
+#define mult_mixed(x, n) ((x) * (n))
+#define div_fp(x, y) (((int64_t)x) * (F) / (y))
+#define div_mixed(x, n) ((x) / (n))
+
 /* A kernel thread or user process.
  *
  * Each thread structure is stored in its own 4 kB page.  The
@@ -92,14 +113,22 @@ struct thread
 	enum thread_status status; /* Thread state. */
 	char name[16];			   /* Name (for debugging purposes). */
 	int priority;			   /* Priority. */
-	int origin_priority;
+
+	/* Alarm clock */
 	int64_t wake_up;
+
+	/* donate priority */
+	int origin_priority;
 	struct lock *wait_lock;
+	struct list donation;
+	struct list_elem donation_elem;
+
+	/* mlfqs */
+	int nice;
+	int recent_cpu;
 
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem; /* List element. */
-	struct list donation;
-	struct list_elem donation_elem;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */

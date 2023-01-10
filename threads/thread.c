@@ -54,6 +54,7 @@ static unsigned thread_ticks; /* # of timer ticks since last yield. */
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
 bool thread_mlfqs;
+int load_avg;
 
 static void kernel_thread(thread_func *, void *aux);
 
@@ -109,6 +110,7 @@ void thread_init(void)
 	list_init(&ready_list);
 	list_init(&sleep_list);
 	list_init(&destruction_req);
+	load_avg = LOAD_AVG_DEFAULT;
 
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread();
@@ -364,13 +366,20 @@ void thread_yield_test(void)
 /* Returns the current thread's priority. */
 int thread_get_priority(void)
 {
-	refresh_priority();
+	if (!thread_mlfqs)
+	{
+		refresh_priority();
+	}
 	return thread_current()->priority;
 }
 
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority)
 {
+	if (thread_mlfqs)
+	{
+		return;
+	}
 	thread_current()->origin_priority = new_priority;
 	refresh_priority();
 	thread_yield_test();
@@ -452,31 +461,38 @@ void refresh_priority(void)
 	}
 }
 
-/* Sets the current thread's nice value to NICE. */
-void thread_set_nice(int nice UNUSED)
-{
-	/* TODO: Your implementation goes here */
-}
-
 /* Returns the current thread's nice value. */
 int thread_get_nice(void)
 {
 	/* TODO: Your implementation goes here */
-	return 0;
+	int nice = thread_current()->nice;
+	return nice;
+}
+
+/* Sets the current thread's nice value to NICE. */
+void thread_set_nice(int nice)
+{
+	/* TODO: Your implementation goes here */
+	thread_current()->nice = nice;
+	// 계산
+	thread_yield_test();
 }
 
 /* Returns 100 times the system load average. */
 int thread_get_load_avg(void)
 {
 	/* TODO: Your implementation goes here */
-	return 0;
+	int load_avg = fp_to_int_round(mult_mixed(load_avg, 100));
+	return load_avg;
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int thread_get_recent_cpu(void)
 {
 	/* TODO: Your implementation goes here */
-	return 0;
+	struct thread *cur = thread_current();
+	int recent_cpu = fp_to_int_round((mult_mixed(cur->recent_cpu, 100)));
+	return recent_cpu;
 }
 
 /* Idle thread.  Executes when no other thread is ready to run.
@@ -549,6 +565,8 @@ init_thread(struct thread *t, const char *name, int priority)
 	t->origin_priority = priority;
 	t->wait_lock = NULL;
 	list_init(&t->donation);
+	t->nice = NICE_DEFAULT;
+	t->recent_cpu = RECENT_CPU_DEFAULT;
 	t->magic = THREAD_MAGIC;
 }
 
