@@ -112,7 +112,6 @@ void thread_init(void)
 	list_init(&ready_list);
 	list_init(&sleep_list);
 	list_init(&destruction_req);
-	load_avg = LOAD_AVG_DEFAULT;
 
 	/* Set up a thread structure for the running thread. */
 	initial_thread = running_thread();
@@ -129,6 +128,7 @@ void thread_start(void)
 	struct semaphore idle_started;
 	sema_init(&idle_started, 0);
 	thread_create("idle", PRI_MIN, idle, &idle_started);
+	load_avg = LOAD_AVG_DEFAULT;
 
 	/* Start preemptive thread scheduling. */
 	intr_enable();
@@ -209,7 +209,7 @@ tid_t thread_create(const char *name, int priority,
 	t->tf.eflags = FLAG_IF;
 
 	/* Add to run queue. */
-	list_push_back(&all_list, &t->elem);
+	list_push_back(&all_list, &t->all_elem);
 	thread_unblock(t);
 	thread_yield_test();
 
@@ -468,7 +468,9 @@ void refresh_priority(void)
 int thread_get_nice(void)
 {
 	/* TODO: Your implementation goes here */
+	enum intr_level old_level = intr_disable();
 	int nice = thread_current()->nice;
+	intr_set_level(old_level);
 	return nice;
 }
 
@@ -476,17 +478,20 @@ int thread_get_nice(void)
 void thread_set_nice(int nice)
 {
 	/* TODO: Your implementation goes here */
+	enum intr_level old_level = intr_disable();
 	thread_current()->nice = nice;
-	// 계산
+	mlfqs_get_priority(thread_current());
 	thread_yield_test();
+	intr_set_level(old_level);
 }
 
 /* Returns 100 times the current thread's recent_cpu value. */
 int thread_get_recent_cpu(void)
 {
 	/* TODO: Your implementation goes here */
-	struct thread *cur = thread_current();
-	int recent_cpu = fp_to_int_round((mult_mixed(cur->recent_cpu, 100)));
+	enum intr_level old_level = intr_disable();
+	int recent_cpu = fp_to_int_round(mult_mixed(thread_current()->recent_cpu, 100));
+	intr_set_level(old_level);
 	return recent_cpu;
 }
 
@@ -494,8 +499,10 @@ int thread_get_recent_cpu(void)
 int thread_get_load_avg(void)
 {
 	/* TODO: Your implementation goes here */
-	int load_avg = fp_to_int_round(mult_mixed(load_avg, 100));
-	return load_avg;
+	enum intr_level old_level = intr_disable();
+	int load_avg_ = fp_to_int_round(mult_mixed(load_avg, 100));
+	intr_set_level(old_level);
+	return load_avg_;
 }
 
 void mlfqs_get_priority(struct thread *t)
@@ -504,7 +511,15 @@ void mlfqs_get_priority(struct thread *t)
 	{
 		return;
 	}
-	t->priority = add_mixed(mult_mixed(t->recent_cpu, -4), PRI_MAX - (t->nice * 2));
+	t->priority = fp_to_int(add_mixed(div_mixed(t->recent_cpu, -4), PRI_MAX - (t->nice * 2)));
+	if (t->priority > PRI_MAX)
+	{
+		t->priority = PRI_MAX;
+	}
+	else if (t->priority < PRI_MIN)
+	{
+		t->priority = PRI_MIN;
+	}
 }
 
 void mlfqs_get_recent_cpu(struct thread *t)
@@ -513,7 +528,7 @@ void mlfqs_get_recent_cpu(struct thread *t)
 	{
 		return;
 	}
-	t->recent_cpu = add_mixed(mult_fp(div_mixed(mult_mixed(load_avg, 2), add_mixed(div_mixed(load_avg, 2), 1)), t->recent_cpu), t->nice);
+	t->recent_cpu = add_mixed(mult_fp(div_fp(mult_mixed(load_avg, 2), add_mixed(mult_mixed(load_avg, 2), 1)), t->recent_cpu), t->nice);
 }
 
 void mlfqs_get_load_avg(void)
@@ -528,6 +543,10 @@ void mlfqs_get_load_avg(void)
 		ready_threads = list_size(&ready_list) + 1; /* 1 is running thread count */
 	}
 	load_avg = add_fp(mult_fp(div_fp(int_to_fp(59), int_to_fp(60)), load_avg), mult_mixed(div_fp(int_to_fp(1), int_to_fp(60)), ready_threads));
+	if (load_avg < 0)
+	{
+		load_avg = LOAD_AVG_DEFAULT;
+	}
 }
 
 void mlfqs_increase_recent_cpu(void)
@@ -545,7 +564,7 @@ void mlfqs_refresh_priority(void)
 	struct list_elem *e;
 	for (e = list_begin(&all_list); e != list_end(&all_list); e = list_next(e))
 	{
-		struct thread *t = list_entry(e, struct thread, elem);
+		struct thread *t = list_entry(e, struct thread, all_elem);
 		mlfqs_get_priority(t);
 	}
 }
@@ -555,7 +574,7 @@ void mlfqs_refresh_recent_cpu(void)
 	struct list_elem *e;
 	for (e = list_begin(&all_list); e != list_end(&all_list); e = list_next(e))
 	{
-		struct thread *t = list_entry(e, struct thread, elem);
+		struct thread *t = list_entry(e, struct thread, all_elem);
 		mlfqs_get_recent_cpu(t);
 	}
 }
@@ -801,7 +820,7 @@ schedule(void)
 		if (curr && curr->status == THREAD_DYING && curr != initial_thread)
 		{
 			ASSERT(curr != next);
-			list_remove(&curr->elem);
+			list_remove(&curr->all_elem);
 			list_push_back(&destruction_req, &curr->elem);
 		}
 

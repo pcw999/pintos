@@ -33,21 +33,21 @@ typedef int tid_t;
 #define RECENT_CPU_DEFAULT 0
 #define LOAD_AVG_DEFAULT 0
 
-/* operate mlfqs  n = integer // x, y = fp number */
+/* operate mlfqs  n = integer // x, y = fp number (real number) */
 #define F (1 << 14)
 #define INT_MAX ((1 << 31) - 1)
 #define INT_MIN (-(1 << 31))
-#define int_to_fp(n) ((n) * (F))																  /* Convert n to fiexed point */
-#define fp_to_int(x) ((x) / (F))																  /* Convert x to integer (rounding toward zero)*/
-#define fp_to_int_round(x) (((x) >= (0)) ? (((x) + (F) / (2)) / (F)) : (((x) - (F) / (2)) / (F))) /* Convert x to integer (rounding to nearest) */
-#define add_fp(x, y) ((x) + (y))																  /* Add x and y */
-#define sub_fp(x, y) ((x) - (y))																  /* Subtract y from x */
-#define add_mixed(x, n) ((x) + (n) * (F))														  /* Add x and n */
-#define sub_mixed(x, n) ((x) - (n) * (F))														  /* Subtract n from x */
-#define mult_fp(x, y) (((int64_t)x) * (y) / (F))												  /* Multiply x by y */
-#define mult_mixed(x, n) ((x) * (n))															  /* Multiply x by n */
-#define div_fp(x, y) (((int64_t)x) * (F) / (y))													  /* Divide x by y */
-#define div_mixed(x, n) ((x) / (n))																  /* Divide x by n */
+#define int_to_fp(n) ((n) * (F))																/* Convert n to fiexed point */
+#define fp_to_int(x) ((x) / (F))																/* Convert x to integer (rounding toward zero)*/
+#define fp_to_int_round(x) ((x) >= (0)) ? (((x) + (F) / (2)) / (F)) : (((x) - (F) / (2)) / (F)) /* Convert x to integer (rounding to nearest) */
+#define add_fp(x, y) ((x) + (y))																/* Add x and y */
+#define sub_fp(x, y) ((x) - (y))																/* Subtract y from x */
+#define add_mixed(x, n) ((x) + (n) * (F))														/* Add x and n */
+#define sub_mixed(x, n) ((x) - (n) * (F))														/* Subtract n from x */
+#define mult_fp(x, y) (((int64_t)x) * (y) / (F))												/* Multiply x by y */
+#define mult_mixed(x, n) ((x) * (n))															/* Multiply x by n */
+#define div_fp(x, y) (((int64_t)x) * (F) / (y))													/* Divide x by y */
+#define div_mixed(x, n) ((x) / (n))																/* Divide x by n */
 
 /* A kernel thread or user process.
  *
@@ -126,6 +126,7 @@ struct thread
 	/* mlfqs */
 	int nice;
 	int recent_cpu;
+	struct list_elem all_elem;
 
 	/* Shared between thread.c and synch.c. */
 	struct list_elem elem; /* List element. */

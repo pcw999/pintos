@@ -25,3 +25,6 @@ priority 기반 스케줄링이 작동하지 않도록 조건문 추가
 
 ver 9
 -mlfqs 1차 완
+
+ver 10
+-나만무 들어가기전 백업, mlfqs recent-1 제외 전부 구현
